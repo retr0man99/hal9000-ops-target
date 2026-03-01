@@ -1,0 +1,71 @@
+name: Notify HAL9000-OPS on Failure
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DROP THIS FILE INTO ANY REPO YOU WANT HAL9000-OPS TO WATCH.
+# No other changes needed in that repo — just add this file and the secret.
+#
+# What this does:
+#   When any workflow in THIS repo fails, it fires a repository_dispatch event
+#   to your central HAL9000-OPS agent repo, which then investigates the failure.
+#
+# One-time setup per target repo:
+#   1. Add this file to .github/workflows/notify-hal9000.yml
+#   2. Add ONE secret to this repo:
+#        Name:  HAL9000_DISPATCH_TOKEN
+#        Value: A fine-grained PAT with Contents(rw) on your hal9000-ops repo
+#               (the same token works for all target repos — create once, reuse)
+#
+# You do NOT need to change HAL9000_OPS_REPO unless you fork/rename the agent.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_run:
+    workflows: ["*"]       # Watches ALL workflows in this repo
+    types: [completed]
+
+env:
+  # ── Point at your central HAL9000-OPS agent repo ───────────────────────────
+  # Change this only if you fork or rename the agent repo.
+  HAL9000_OPS_OWNER: retr0man99
+  HAL9000_OPS_REPO:  hal9000-ops
+
+jobs:
+  notify:
+    # Only fire when a workflow actually failed — not on success/cancel
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+
+    # Minimal permissions — this job only reads metadata and calls an external API
+    permissions:
+      contents: read
+
+    steps:
+      - name: Dispatch failure event to HAL9000-OPS
+        uses: actions/github-script@v7
+        with:
+          # HAL9000_DISPATCH_TOKEN: fine-grained PAT with Contents(rw) on
+          # retr0man99/hal9000-ops. Create once and add to every target repo
+          # as the same secret — the token itself does not change per repo.
+          github-token: ${{ secrets.HAL9000_DISPATCH_TOKEN }}
+          script: |
+            const owner    = process.env.HAL9000_OPS_OWNER;
+            const repo     = process.env.HAL9000_OPS_REPO;
+            const sourceRepo = context.payload.workflow_run.repository.full_name;
+
+            console.log(`Dispatching ci_failure from ${sourceRepo} to ${owner}/${repo}`);
+
+            await github.rest.repos.createDispatchEvent({
+              owner,
+              repo,
+              event_type: "ci_failure",
+              client_payload: {
+                source_repo:   sourceRepo,
+                run_id:        String(context.payload.workflow_run.id),
+                run_url:       context.payload.workflow_run.html_url,
+                branch:        context.payload.workflow_run.head_branch,
+                workflow_name: context.payload.workflow_run.name,
+                conclusion:    context.payload.workflow_run.conclusion,
+              }
+            });
+
+            console.log(`✅ HAL9000-OPS notified — run ID ${context.payload.workflow_run.id}`);
