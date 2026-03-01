@@ -1,22 +1,10 @@
-name: CI — Broken Build (HAL9000-OPS Test Target)
+name: CI — Broken Build
 
 on:
   push:
     branches: ["main", "develop"]
   pull_request:
     branches: ["main"]
-
-# ─────────────────────────────────────────────────────────────────────────────
-# THIS WORKFLOW IS INTENTIONALLY BROKEN to trigger HAL9000-OPS investigation.
-#
-# Bugs planted:
-#   1. Wrong Python version string "3.13.99" — does not exist, setup will fail
-#   2. requirements file path typo: "app/requirementz.txt" — file not found
-#   3. Test command references wrong directory: "testss/" — no such folder
-#
-# Point your HAL9000-OPS agent at this repo and watch it investigate.
-# To fix: see the comments marked [FIX] on each broken line.
-# ─────────────────────────────────────────────────────────────────────────────
 
 jobs:
   test:
@@ -30,18 +18,15 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13.99"   # ❌ BUG 1: version does not exist
-                                       # [FIX] change to "3.12"
+          python-version: "3.13.99"
 
       - name: Install dependencies
         run: |
-          pip install -r app/requirementz.txt   # ❌ BUG 2: typo in filename
-                                                 # [FIX] change to app/requirements.txt
+          pip install -r app/requirementz.txt
 
       - name: Run tests
         run: |
-          pytest testss/ -v   # ❌ BUG 3: wrong directory name
-                               # [FIX] change to tests/
+          pytest testss/ -v
 
   docker-build:
     name: Build Docker Image (broken)

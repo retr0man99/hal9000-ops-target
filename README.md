@@ -29,20 +29,3 @@ make build
 # Start with docker-compose
 make up
 ```
-
-## HAL9000-OPS integration
-
-Point your HAL9000-OPS agent `.env` at this repo:
-
-```bash
-GITHUB_REPO=your-username/hal9000-ops-target
-```
-
-The `ci-broken.yml` workflow will fail on every push to `main` or `develop`,
-giving HAL9000-OPS a live failure to investigate. It contains three deliberate bugs:
-
-1. Invalid Python version string
-2. Typo in requirements file path
-3. Wrong test directory name
-
-Each bug is clearly marked with `# ❌ BUG` and `# [FIX]` comments in the workflow file.
