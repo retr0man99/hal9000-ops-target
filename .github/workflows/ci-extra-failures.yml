@@ -1,0 +1,44 @@
+name: CI — Extra Failure Modes
+
+# Additional intentional failures for HAL9000-OPS testing.
+# Each job exercises a different class of error.
+
+on:
+  workflow_dispatch:  # manual-only — never trigger automatically
+
+jobs:
+  bad-secret-ref:
+    name: Bad secret reference
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use non-existent secret
+        run: echo "token=${{ secrets.NONEXISTENT_SECRET }}"
+
+  unpinned-action:
+    name: Unpinned action version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - run: echo "This used @main instead of a pinned tag"
+
+  latest-docker:
+    name: Dockerfile with latest tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build with bad Dockerfile
+        run: |
+          cat > /tmp/Dockerfile.bad <<'EOF'
+          FROM python:latest
+          COPY . /app
+          CMD ["python", "main.py"]
+          EOF
+          docker build -f /tmp/Dockerfile.bad -t bad-image .
+
+  bad-needs-ref:
+    name: Bad needs reference
+    runs-on: ubuntu-latest
+    needs: [nonexistent-job]
+    steps:
+      - run: echo "This job references a needs that does not exist"
