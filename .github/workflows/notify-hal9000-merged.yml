@@ -1,0 +1,69 @@
+name: Notify HAL9000-OPS on PR Merge
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DROP THIS FILE INTO ANY REPO WHERE HAL9000-OPS CREATES FIX PRs.
+# It notifies the agent repo when a HAL9000-OPS fix PR is merged so the
+# agent can update its long-term memory (ChromaDB) with resolution=merged.
+#
+# Reuses the same HAL9000_DISPATCH_TOKEN secret as notify-hal9000.yml.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main, master]
+
+env:
+  HAL9000_OPS_OWNER: retr0man99
+  HAL9000_OPS_REPO:  hal9000-ops
+
+jobs:
+  notify-merge:
+    # Only fire when a HAL9000-OPS fix PR is merged (not closed without merge)
+    if: >-
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'hal9000-ops/fix/')
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Extract run ID from branch name
+        id: meta
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          # Branch format: hal9000-ops/fix/<run_id>-<slug>
+          # Extract the run_id segment after "hal9000-ops/fix/"
+          SUFFIX="${BRANCH#hal9000-ops/fix/}"
+          RUN_ID=$(echo "$SUFFIX" | grep -oE '^[0-9]+' || echo "unknown")
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "Extracted run_id: $RUN_ID from branch: $BRANCH"
+
+      - name: Dispatch pr_merged event to HAL9000-OPS
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.HAL9000_DISPATCH_TOKEN }}
+          script: |
+            const owner = process.env.HAL9000_OPS_OWNER;
+            const repo  = process.env.HAL9000_OPS_REPO;
+            const sourceRepo = context.payload.repository.full_name;
+            const prUrl      = context.payload.pull_request.html_url;
+            const runId      = '${{ steps.meta.outputs.run_id }}';
+
+            console.log(`Dispatching pr_merged from ${sourceRepo} to ${owner}/${repo}`);
+            console.log(`  PR: ${prUrl}, Run ID: ${runId}`);
+
+            await github.rest.repos.createDispatchEvent({
+              owner,
+              repo,
+              event_type: "pr_merged",
+              client_payload: {
+                source_repo: sourceRepo,
+                pr_url:      prUrl,
+                run_id:      runId,
+                branch:      context.payload.pull_request.base.ref,
+                pr_number:   String(context.payload.pull_request.number),
+                merged_by:   context.payload.pull_request.merged_by?.login || "unknown",
+              }
+            });
