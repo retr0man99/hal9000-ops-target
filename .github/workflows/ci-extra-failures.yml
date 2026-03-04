@@ -13,13 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Use non-existent secret
-        run: echo "token=${{ secrets.NONEXISTENT_SECRET }}"
+        run: echo "token=${{ secrets.GITHUB_TOKEN }}"
 
   unpinned-action:
     name: Unpinned action version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@main
+      - uses: actions/checkout@v4
       - run: echo "This used @main instead of a pinned tag"
 
   latest-docker:
@@ -39,6 +39,5 @@ jobs:
   bad-needs-ref:
     name: Bad needs reference
     runs-on: ubuntu-latest
-    needs: [nonexistent-job]
     steps:
       - run: echo "This job references a needs that does not exist"
