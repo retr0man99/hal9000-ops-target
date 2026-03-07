@@ -1,0 +1,51 @@
+name: "CI — Memory Test Phase 2: Python Version Mismatch (Variant)"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MEMORY TEST — Phase 2 of 2
+#
+# Purpose: Introduce a SIMILAR but distinct CI failure to test whether
+#          HAL9000-OPS recalls the Phase 1 investigation from ChromaDB memory.
+#
+# Bug injected:
+#   Uses Python 3.9 which does NOT support:
+#     - The `X | Y` union type syntax (PEP 604 — requires Python 3.10+)
+#     - The `match/case` statement (PEP 634 — requires Python 3.10+)
+#   The test file uses `int | str` type hints, so it will fail with a
+#   TypeError/SyntaxError on Python 3.9.
+#
+# Expected agent behaviour:
+#   1. search_memory_for_similar_failures — should find the Phase 1 record
+#      (Python version mismatch → SyntaxError) with high similarity
+#   2. Detect the similar root cause: wrong python-version in workflow
+#   3. Reference the Phase 1 fix in its investigation issue
+#   4. Create a fix PR changing python-version from 3.9 → 3.12
+#
+# SUCCESS CRITERIA:
+#   The agent's investigation issue or PR mentions the Phase 1 case,
+#   and the memory search tool returns a similarity match.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:  # manual trigger only
+
+jobs:
+  test:
+    name: "Memory Test P2 — pytest on wrong Python (variant)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python (deliberately wrong version)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"    # BUG: X | Y union type syntax requires 3.10+
+
+      - name: Install dependencies
+        run: |
+          pip install flask==3.0.3 pytest==8.2.2
+
+      - name: Run tests
+        run: |
+          pytest tests/test_memory_phase2.py -v

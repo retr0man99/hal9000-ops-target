@@ -1,0 +1,47 @@
+name: "CI — Memory Test Phase 1: Python Version Mismatch"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MEMORY TEST — Phase 1 of 2
+#
+# Purpose: Introduce a deliberate CI failure that HAL9000-OPS can investigate,
+#          diagnose, and store in ChromaDB memory.
+#
+# Bug injected:
+#   Uses Python 3.8 which does NOT support the `match/case` statement
+#   (PEP 634 — requires Python 3.10+). The test file uses match/case,
+#   so pytest collection will fail with a SyntaxError.
+#
+# Expected agent behaviour:
+#   1. Detect SyntaxError from pytest due to match/case on Python 3.8
+#   2. Root-cause: wrong python-version in the workflow
+#   3. Post an investigation issue
+#   4. Create a fix PR changing python-version from 3.8 → 3.12
+#   5. Store the investigation in ChromaDB memory
+#
+# After this runs and the agent investigates, proceed to Phase 2.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:  # manual trigger only
+
+jobs:
+  test:
+    name: "Memory Test P1 — pytest on wrong Python"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python (deliberately wrong version)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"    # BUG: match/case requires 3.10+
+
+      - name: Install dependencies
+        run: |
+          pip install flask==3.0.3 pytest==8.2.2
+
+      - name: Run tests
+        run: |
+          pytest tests/test_memory_phase1.py -v
