@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Use non-existent secret
-        run: echo "token=${{ secrets.GITHUB_TOKEN }}"
+        run: echo "token=${{ secrets.non-existent secret }}"
 
   unpinned-action:
     name: Unpinned action version
