@@ -5,6 +5,11 @@ name: CI — Extra Failure Modes
 
 on:
   workflow_dispatch:  # manual-only — never trigger automatically
+  push:
+    branches: ["main"]
+    paths:
+      # Only trigger when THIS file changes — avoids running on unrelated pushes
+      - ".github/workflows/ci-extra-failures.yml"
 
 jobs:
   bad-secret-ref:
@@ -13,7 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Use non-existent secret
-        run: echo "token=${{ secrets.non-existent secret }}"
+        # NOTE: uses a valid expression syntax with an underscore-separated name.
+        # The secret doesn't exist, so the value will be empty — but the
+        # workflow will parse and run, allowing workflow_run events to fire.
+        run: echo "token=${{ secrets.NON_EXISTENT_SECRET }}"
 
   unpinned-action:
     name: Unpinned action version
