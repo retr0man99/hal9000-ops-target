@@ -40,7 +40,7 @@ jobs:
       - name: Set up Python (deliberately wrong version)
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"    # BUG: X | Y union type syntax requires 3.10+
+          python-version: "3.9"    # BUG: X | Y union type syntax requires 3.10+
 
       - name: Install dependencies
         run: |

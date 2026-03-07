@@ -36,7 +36,7 @@ jobs:
       - name: Set up Python (deliberately wrong version)
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"    # BUG: match/case requires 3.10+
+          python-version: "3.8"    # BUG: match/case requires 3.10+
 
       - name: Install dependencies
         run: |
