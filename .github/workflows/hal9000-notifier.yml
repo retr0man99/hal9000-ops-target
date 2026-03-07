@@ -20,16 +20,12 @@ name: Notify HAL9000-OPS on Failure
 
 on:
   workflow_run:
-    # List every workflow to watch explicitly.
-    # Using ["*"] causes the notifier to trigger ITSELF on completion,
-    # creating cascading skipped runs.  Listing names explicitly avoids this
-    # and also prevents notifying on the merge-notifier workflow.
-    workflows:
-      - "CI — Build & Test"
-      - "CI — Broken Build"
-      - "CI — Extra Failure Modes"
-      - "CI — Memory Test Phase 1: Python Version Mismatch"
-      - "CI — Memory Test Phase 2: Python Version Mismatch (Variant)"
+    # Watch ALL workflows — using ["*"] ensures no failures are missed when
+    # workflow names change or new workflows are added.
+    # GitHub has built-in recursion prevention: a workflow_run triggered by
+    # another workflow_run will NOT trigger a third, so cascading is bounded.
+    # The if: condition below skips this notifier's own runs and successes.
+    workflows: ["*"]
     types: [completed]
 
 env:
@@ -40,8 +36,12 @@ env:
 
 jobs:
   notify:
-    # Only fire when a workflow actually failed — not on success/cancel
-    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    # Only fire when a workflow actually failed — skip successes, cancels,
+    # and the notifier/merge-notifier workflows themselves.
+    if: >-
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.name != 'Notify HAL9000-OPS on Failure' &&
+      github.event.workflow_run.name != 'Notify HAL9000-OPS on PR Merge'
     runs-on: ubuntu-latest
 
     # Minimal permissions — this job only reads metadata and calls an external API
